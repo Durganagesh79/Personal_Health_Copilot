@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Personal Healthcare AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body class="login-page">
+    <main class="login-card">
+        <div class="health-logo" aria-hidden="true">✚</div>
+
+        <p class="login-eyebrow">PERSONAL HEALTHCARE AI</p>
+        <h1>Welcome Back</h1>
+        <p class="login-subtitle">Sign in to your health workspace.</p>
+
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="login-error" role="alert">
+            {% for message in messages %}
+            <p>{{ message }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <form action="{{ url_for('login') }}" method="POST">
+            <div class="login-field">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" placeholder="Enter your username"
+                    autocomplete="username" required autofocus>
+            </div>
+
+            <div class="login-field">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Enter your password"
+                    autocomplete="current-password" required>
+            </div>
+
+            <button class="login-submit" type="submit">Login <span>→</span></button>
+        </form>
+
+        <p class="login-footer">Your health information, organized in one place.</p>
+    </main>
+</body>
+
+</html>

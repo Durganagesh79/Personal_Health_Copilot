@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Report History | Health Copilot{% endblock %}
+
+{% block content %}
+<header class="topbar">
+    <div>
+        <span class="eyebrow">DOCUMENT LIBRARY</span>
+        <h1>Report history</h1>
+        <p class="page-subtitle">Open any saved report to revisit its analysis.</p>
+    </div>
+    <a class="primary-button" href="{{ url_for('dashboard') }}">+ Upload report</a>
+</header>
+
+<section class="panel history-panel">
+    {% if records %}
+    <div class="history-list">
+        {% for record in records %}
+        <a href="{{ url_for('view_record', record_id=record.id) }}" class="history-item">
+            <div class="document-icon large">▤</div>
+            <div class="history-details">
+                <strong>{{ record.filename }}</strong>
+                <p>{{ record.document_type }} · Report date: {{ record.report_date or "Not detected" }}</p>
+                <small>Added {{ record.created_at }}</small>
+            </div>
+            <div class="history-status">
+                <span class="review-badge">{{ record.verification_status }}</span>
+                <span class="history-open">Open report →</span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="medical-empty-state">
+        <span class="empty-illustration">▤</span>
+        <h2>No saved reports yet</h2>
+        <p>Upload your first PDF or image to start building your report history.</p>
+        <a class="primary-button" href="{{ url_for('dashboard') }}">Upload a report</a>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

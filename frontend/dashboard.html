@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Personal Health Copilot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&family=Noto+Sans+Telugu:wght@400;600&family=Noto+Sans+Devanagari:wght@400;600&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="shell">
+
+        <aside class="sidebar" id="sidebar">
+            <a class="brand" href="{{ url_for('dashboard') }}">
+                <span class="brand-icon">✚</span>
+                <span><b>Health Copilot</b><small>PERSONAL HEALTH RECORDS</small></span>
+            </a>
+
+            <p class="nav-label">WORKSPACE</p>
+            <nav class="nav">
+                <a class="nav-item {% if active_section == 'dashboard' %}active{% endif %}"
+                    href="{{ url_for('dashboard') }}"><span>▦</span>Dashboard</a>
+                <button class="nav-item" type="button" data-section="profile"><span>♙</span>Profile</button>
+                <a class="nav-item {% if active_section == 'history' %}active{% endif %}"
+                    href="{{ url_for('history') }}"><span>◷</span>History</a>
+                <button class="nav-item" type="button" data-section="settings"><span>⚙</span>Settings</button>
+            </nav>
+
+            <div class="history-title">
+                <p class="nav-label">RECENT REPORTS</p>
+                <span class="count">{{ records|length }}</span>
+            </div>
+
+            <div class="side-history">
+                {% for record in records[:10] %}
+                <a class="side-report {% if selected_record and selected_record.id == record.id %}chosen{% endif %}"
+                    href="{{ url_for('view_record', record_id=record.id) }}" title="{{ record.filename }}">
+                    <span class="file-icon">▤</span>
+                    <span class="side-report-text">
+                        <b>{{ record.filename }}</b>
+                        <small>{{ record.report_date or record.created_at }}</small>
+                    </span>
+                </a>
+                {% else %}
+                <p class="muted side-empty">Uploaded reports will appear here.</p>
+                {% endfor %}
+            </div>
+
+            <div class="sidebar-bottom">
+                <div class="privacy">
+                    <span>♧</span>
+                    <div><b>Your health, your control</b><small>Review extracted details carefully.</small></div>
+                </div>
+                <div class="user-row">
+                    <span class="avatar">{{ (session.get('display_name') or username or 'U')[:1]|upper }}</span>
+                    <span class="user-text">
+                        <b>{{ session.get('display_name') or username }}</b>
+                        <small>Personal account</small>
+                    </span>
+                    <form method="post" action="{{ url_for('logout') }}">
+                        <button class="icon-btn" type="submit" aria-label="Log out" title="Log out">↗</button>
+                    </form>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main">
+            <header class="topbar">
+                <button id="menuBtn" class="menu-btn" type="button" aria-label="Open navigation">☰</button>
+                <div class="crumb">Workspace <span>/</span><b id="crumbCurrent">{{ 'History' if active_section ==
+                        'history' else 'Dashboard' }}</b></div>
+                <span class="private-pill"><i></i>Private workspace</span>
+            </header>
+
+            <div class="content">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <div class="flash-list">
+                    {% for category, message in messages %}
+                    <div class="flash {{ category }}">
+                        <span>{{ '✓' if category == 'success' else '!' }}</span>
+                        <div>{{ message }}</div>
+                        <button type="button" class="dismiss" aria-label="Dismiss">×</button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endwith %}
+
+                <!-- DASHBOARD -->
+                <section id="dashboardSection"
+                    class="page-section {% if active_section != 'history' %}visible{% endif %}">
+                    <div class="page-heading">
+                        <div>
+                            <p class="eyebrow">YOUR HEALTH, ORGANIZED</p>
+                            <h1>Hello, {{ session.get('display_name') or username }} <span class="spark">✦</span></h1>
+                            <p class="subtitle">Your medical records, brought together in one clear place.</p>
+                        </div>
+                        <span class="ready-pill"><i></i>AI assistant available</span>
+                    </div>
+
+                    <div class="stats">
+                        <article class="stat">
+                            <div class="stat-top"><span class="stat-icon blue">▤</span><small>ALL RECORDS</small></div>
+                            <strong>{{ records|length }}</strong>
+                            <p>Reports saved to your account</p>
+                        </article>
+                        <article class="stat">
+                            <div class="stat-top"><span class="stat-icon green">✓</span><small>SAVED REPORTS</small>
+                            </div>
+                            <strong>{{ records|length }}</strong>
+                            <p>Available in your history</p>
+                        </article>
+                        <article class="stat">
+                            <div class="stat-top"><span class="stat-icon purple">✧</span><small>HEALTH ASSISTANT</small>
+                            </div>
+                            <strong class="ready-text">Ready</strong>
+                            <p>AI summaries need your verification</p>
+                        </article>
+                    </div>
+
+                    <section class="upload-card">
+                        <div class="upload-heading">
+                            <span class="upload-icon">↑</span>
+                            <div>
+                                <h2>Upload a medical report</h2>
+                                <p>Add a laboratory report, prescription, discharge summary, or other medical document.
+                                </p>
+                            </div>
+                        </div>
+
+                        <form id="uploadForm" action="{{ url_for('upload_report') }}" method="post"
+                            enctype="multipart/form-data">
+                            <label class="dropzone" id="dropzone" for="reportInput">
+                                <span class="cloud">↑</span>
+                                <b id="fileLabel">Choose a file or drag it here</b>
+                                <small>PDF or image · Maximum 10 MB</small>
+                                <input id="reportInput" name="report" type="file" accept=".pdf,.png,.jpg,.jpeg"
+                                    required>
+                            </label>
+
+                            <div class="language-pick">
+                                <label for="language">Summary language</label>
+                                <select name="language" id="language">
+                                    <option value="English">English</option>
+                                    <option value="Telugu">తెలుగు (Telugu)</option>
+                                    <option value="Hindi">हिन्दी (Hindi)</option>
+                                </select>
+                            </div>
+
+                            <div class="upload-bottom">
+                                <small>Supported formats: PDF, PNG, JPG, JPEG</small>
+                                <button class="primary" id="uploadBtn" type="submit">Analyze report
+                                    <span>→</span></button>
+                            </div>
+                            <p class="progress" id="progress" hidden>Processing your report. Please wait...</p>
+                        </form>
+                    </section>
+
+                    <div class="section-heading">
+                        <div>
+                            <p class="eyebrow">REPORT OVERVIEW</p>
+                            <h2>Selected medical report</h2>
+                        </div>
+                        <a class="text-link" href="{{ url_for('history') }}">View all history →</a>
+                    </div>
+
+                    {% if selected_record %}
+                    {% set data = selected_record.structured|default({}, true) %}
+                    <article class="report-card">
+                        <div class="report-head">
+                            <div class="report-name">
+                                <span class="report-icon">▤</span>
+                                <div>
+                                    <h3>{{ selected_record.filename }}</h3>
+                                    <p>{{ selected_record.document_type or 'Medical report' }}</p>
+                                </div>
+                            </div>
+                            <span class="review">{{ selected_record.verification_status or 'Needs review' }}</span>
+                        </div>
+
+                        <div class="metadata">
+                            <span><b>Uploaded:</b> {{ selected_record.created_at }}</span>
+                            <span><b>Report date:</b> {{ selected_record.report_date or 'Not identified' }}</span>
+                            <span><b>Type:</b> {{ selected_record.document_type or 'Medical report' }}</span>
+                        </div>
+
+                        <section class="summary">
+                            <h4><span class="ai-icon">✧</span>AI health summary</h4>
+                            <div class="summary-content">{{ selected_record.summary or 'No summary is available.' }}
+                            </div>
+                        </section>
+
+                        {% if data.get('diagnoses') %}
+                        <section class="detail-section">
+                            <h4>Diagnoses and findings mentioned</h4>
+                            {% for item in data.get('diagnoses', []) %}
+                            <div class="detail-item">
+                                <b>{{ item.get('name', 'Finding') if item is mapping else item }}</b>
+                                {% if item is mapping and item.get('details') %}<p>{{ item.get('details') }}</p>{% endif
+                                %}
+                            </div>
+                            {% endfor %}
+                        </section>
+                        {% endif %}
+
+                        {% if data.get('medicines') %}
+                        <section class="detail-section">
+                            <h4>Medicines mentioned in the document</h4>
+                            {% for medicine in data.get('medicines', []) %}
+                            <div class="detail-item">
+                                <b>{{ medicine.get('name', 'Medicine') if medicine is mapping else medicine }}</b>
+                                {% if medicine is mapping %}
+                                <p>
+                                    {% if medicine.get('strength') %}Strength: {{ medicine.get('strength') }}. {% endif
+                                    %}
+                                    {% if medicine.get('dose') %}Dose: {{ medicine.get('dose') }}. {% endif %}
+                                    {% if medicine.get('route') %}Route: {{ medicine.get('route') }}. {% endif %}
+                                    {% if medicine.get('frequency') %}Frequency: {{ medicine.get('frequency') }}. {%
+                                    endif %}
+                                    {% if medicine.get('duration') %}Duration: {{ medicine.get('duration') }}. {% endif
+                                    %}
+                                    {% if medicine.get('purpose') %}Purpose: {{ medicine.get('purpose') }}.{% endif %}
+                                </p>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                            <p class="disclaimer-small">Confirm medicine names, doses, and instructions with a qualified
+                                healthcare professional or pharmacist.</p>
+                        </section>
+                        {% endif %}
+
+                        {% if data.get('test_results') %}
+                        <section class="detail-section">
+                            <h4>Laboratory results</h4>
+                            <div class="table-scroll">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Test</th>
+                                            <th>Value</th>
+                                            <th>Unit</th>
+                                            <th>Reference range</th>
+                                            <th>Flag</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for test in data.get('test_results', []) %}
+                                        <tr>
+                                            <td>{{ test.get('test', '—') if test is mapping else test }}</td>
+                                            <td>{{ test.get('value') or '—' if test is mapping else '—' }}</td>
+                                            <td>{{ test.get('unit') or '—' if test is mapping else '—' }}</td>
+                                            <td>{{ test.get('reference_range') or '—' if test is mapping else '—' }}
+                                            </td>
+                                            <td>{{ test.get('flag') or '—' if test is mapping else '—' }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                        {% endif %}
+
+                        {% for section_key, section_title in [
+                        ('follow_up', 'Follow-up instructions found in the document'),
+                        ('important_notes', 'Important notes'),
+                        ('uncertainties', 'Items that need verification')
+                        ] %}
+                        {% if data.get(section_key) %}
+                        <section class="detail-section">
+                            <h4>{{ section_title }}</h4>
+                            <ul>
+                                {% for item in data.get(section_key, []) %}
+                                <li>{{ item }}</li>
+                                {% endfor %}
+                            </ul>
+                        </section>
+                        {% endif %}
+                        {% endfor %}
+
+                        <details class="ocr">
+                            <summary>View extracted text from the medical document</summary>
+                            <pre>{{ selected_record.extracted_text or 'No text was extracted.' }}</pre>
+                        </details>
+
+                        <div class="safety-note">
+                            <b>ⓘ</b>
+                            <p><strong>Important:</strong> OCR and AI can misread medical information. Verify names,
+                                dates, values, units, and medicines against the original document. This tool does not
+                                diagnose conditions or replace professional medical care.</p>
+                        </div>
+                    </article>
+                    {% else %}
+                    <div class="empty">
+                        <span>▤</span>
+                        <h3>No medical reports yet</h3>
+                        <p>Upload a report to extract text, create a summary, and start your personal health record
+                            history.</p>
+                    </div>
+                    {% endif %}
+                </section>
+
+                <!-- HISTORY -->
+                <section id="historySection"
+                    class="page-section {% if active_section == 'history' %}visible{% endif %}">
+                    <div class="page-heading">
+                        <div>
+                            <p class="eyebrow">YOUR SAVED DOCUMENTS</p>
+                            <h1>Report history</h1>
+                            <p class="subtitle">Open any previous report to view its saved analysis.</p>
+                        </div>
+                        <span class="count-pill">{{ records|length }} reports</span>
+                    </div>
+
+                    {% if records %}
+                    <div class="history-list">
+                        {% for record in records %}
+                        <article class="history-card">
+                            <span class="report-icon">▤</span>
+                            <div class="history-card-body">
+                                <h3>{{ record.filename }}</h3>
+                                <p>{{ record.document_type or 'Medical report' }} · {{ record.created_at }}</p>
+                                <p class="history-summary">{{ (record.summary or 'No summary available.')[:180] }}{% if
+                                    (record.summary or '')|length > 180 %}…{% endif %}</p>
+                            </div>
+                            <a class="secondary" href="{{ url_for('view_record', record_id=record.id) }}">Open report
+                                →</a>
+                        </article>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="empty"><span>◷</span>
+                        <h3>Your history is empty</h3>
+                        <p>Reports you upload will appear here.</p><a class="primary"
+                            href="{{ url_for('dashboard') }}">Go to dashboard</a>
+                    </div>
+                    {% endif %}
+                </section>
+
+                <!-- PROFILE -->
+                <section id="profileSection" class="page-section">
+                    <div class="page-heading">
+                        <div>
+                            <p class="eyebrow">YOUR ACCOUNT</p>
+                            <h1>Profile</h1>
+                            <p class="subtitle">Manage the display name shown in your workspace.</p>
+                        </div>
+                    </div>
+                    <div class="settings-card">
+                        <form class="settings-form" method="post" action="{{ url_for('profile') }}">
+                            <label for="usernameDisplay">Login username</label>
+                            <input id="usernameDisplay" type="text" value="{{ username }}" disabled>
+                            <label for="display_name">Display name</label>
+                            <input id="display_name" name="display_name" type="text" maxlength="80"
+                                value="{{ session.get('display_name') or username }}" required>
+                            <button class="primary" type="submit">Save profile</button>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- SETTINGS -->
+                <section id="settingsSection" class="page-section">
+                    <div class="page-heading">
+                        <div>
+                            <p class="eyebrow">WORKSPACE PREFERENCES</p>
+                            <h1>Settings</h1>
+                            <p class="subtitle">Review how this application handles your medical documents.</p>
+                        </div>
+                    </div>
+                    <div class="settings-card">
+                        <div class="setting-row">
+                            <div><b>Original uploaded files</b>
+                                <p>Temporary uploads are removed after processing. Extracted text and analysis remain in
+                                    SQLite.</p>
+                            </div>
+                            <span class="tag">Temporary</span>
+                        </div>
+                        <div class="setting-row">
+                            <div><b>AI-generated summaries</b>
+                                <p>Automated summaries may be inaccurate. Verify details with the original report.</p>
+                            </div>
+                            <span class="tag">Review required</span>
+                        </div>
+                        <div class="setting-row">
+                            <div><b>Account session</b>
+                                <p>Log out when you finish using this workspace.</p>
+                            </div>
+                            <form method="post" action="{{ url_for('logout') }}"><button class="secondary"
+                                    type="submit">Log out</button></form>
+                        </div>
+                    </div>
+                </section>
+
+                <footer class="footer">
+                    <b>✚ Personal Health Copilot</b>
+                    <span>Organize records. Verify details. Consult your clinician for medical decisions.</span>
+                </footer>
+            </div>
+        </main>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+
+    <script>
+        (() => {
+            const sections = {
+                dashboard: document.getElementById("dashboardSection"),
+                history: document.getElementById("historySection"),
+                profile: document.getElementById("profileSection"),
+                settings: document.getElementById("settingsSection")
+            };
+
+            const sidebar = document.getElementById("sidebar");
+            const overlay = document.getElementById("overlay");
+            const crumb = document.getElementById("crumbCurrent");
+
+            function closeMenu() {
+                sidebar.classList.remove("open");
+                overlay.classList.remove("show");
+            }
+
+            function showSection(name, updateHash = true) {
+                if (!sections[name]) name = "dashboard";
+
+                Object.entries(sections).forEach(([key, element]) => {
+                    element.classList.toggle("visible", key === name);
+                });
+
+                if (crumb) crumb.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+
+                document.querySelectorAll("[data-section]").forEach(element => {
+                    element.classList.toggle("active", element.dataset.section === name);
+                });
+
+                if (updateHash) {
+                    history.replaceState(null, "", name === "dashboard" ? location.pathname : "#" + name);
+                }
+
+                closeMenu();
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+
+            document.querySelectorAll("[data-section]").forEach(element => {
+                element.addEventListener("click", () => showSection(element.dataset.section));
+            });
+
+            const initialHash = location.hash.replace("#", "");
+            if (["profile", "settings", "history"].includes(initialHash)) {
+                showSection(initialHash, false);
+            } else {
+                showSection("{{ active_section }}", false);
+            }
+
+            const input = document.getElementById("reportInput");
+            const label = document.getElementById("fileLabel");
+            const zone = document.getElementById("dropzone");
+
+            input?.addEventListener("change", () => {
+                if (input.files.length) label.textContent = input.files[0].name;
+            });
+
+            ["dragenter", "dragover"].forEach(type => zone?.addEventListener(type, event => {
+                event.preventDefault();
+                zone.classList.add("dragging");
+            }));
+
+            ["dragleave", "drop"].forEach(type => zone?.addEventListener(type, event => {
+                event.preventDefault();
+                zone.classList.remove("dragging");
+            }));
+
+            zone?.addEventListener("drop", event => {
+                const files = event.dataTransfer?.files;
+                if (!files?.length || !input) return;
+
+                const file = files[0];
+                const allowed = /\.(pdf|png|jpe?g)$/i.test(file.name);
+
+                if (!allowed) {
+                    alert("Please choose a PDF, PNG, JPG, or JPEG file.");
+                    return;
+                }
+                if (file.size > 10 * 1024 * 1024) {
+                    alert("Maximum file size is 10 MB.");
+                    return;
+                }
+
+                try {
+                    const transfer = new DataTransfer();
+                    transfer.items.add(file);
+                    input.files = transfer.files;
+                    label.textContent = file.name;
+                } catch (_) {
+                    label.textContent = file.name + " (select it using Choose a file)";
+                }
+            });
+
+            document.getElementById("uploadForm")?.addEventListener("submit", event => {
+                if (!input?.files?.length) {
+                    event.preventDefault();
+                    alert("Choose a file first.");
+                    return;
+                }
+
+                const file = input.files[0];
+                if (!/\.(pdf|png|jpe?g)$/i.test(file.name)) {
+                    event.preventDefault();
+                    alert("Please choose a PDF, PNG, JPG, or JPEG file.");
+                    return;
+                }
+                if (file.size > 10 * 1024 * 1024) {
+                    event.preventDefault();
+                    alert("Maximum file size is 10 MB.");
+                    return;
+                }
+
+                const button = document.getElementById("uploadBtn");
+                button.disabled = true;
+                button.textContent = "Processing…";
+                document.getElementById("progress").hidden = false;
+            });
+
+            document.querySelectorAll(".dismiss").forEach(button => {
+                button.addEventListener("click", () => button.closest(".flash")?.remove());
+            });
+
+            document.getElementById("menuBtn")?.addEventListener("click", () => {
+                sidebar.classList.toggle("open");
+                overlay.classList.toggle("show");
+            });
+
+            overlay?.addEventListener("click", closeMenu);
+        })();
+    </script>
+</body>
+
+</html>

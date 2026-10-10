@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Personal Health Copilot{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+</head>
+
+<body class="{% if settings and settings.theme == 'dark' %}dark-theme{% endif %}">
+    {% if user %}
+    <aside class="sidebar">
+        <a href="{{ url_for('dashboard') }}" class="brand">
+            <span class="brand-icon">✚</span>
+            <span>Health<span class="brand-light">Copilot</span></span>
+        </a>
+
+        <p class="sidebar-label">WORKSPACE</p>
+        <nav class="sidebar-nav">
+            <a href="{{ url_for('dashboard') }}" class="{% if active_section == 'dashboard' %}active{% endif %}">
+                <span>▦</span> Dashboard
+            </a>
+            <a href="{{ url_for('history') }}" class="{% if active_section == 'history' %}active{% endif %}">
+                <span>◷</span> Report History
+            </a>
+        </nav>
+
+        <p class="sidebar-label">ACCOUNT</p>
+        <nav class="sidebar-nav">
+            <a href="{{ url_for('profile') }}" class="{% if active_section == 'profile' %}active{% endif %}">
+                <span>♙</span> My Profile
+            </a>
+            <a href="{{ url_for('settings') }}" class="{% if active_section == 'settings' %}active{% endif %}">
+                <span>⚙</span> Settings
+            </a>
+            <a href="{{ url_for('logout') }}">
+                <span>↪</span> Logout
+            </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <div class="sidebar-avatar">
+                {{ (user.display_name or user.username)[0]|upper }}
+            </div>
+            <div class="sidebar-user">
+                <strong>{{ user.display_name or user.username }}</strong>
+                <small>Personal account</small>
+            </div>
+        </div>
+    </aside>
+    {% endif %}
+
+    <main class="{% if user %}main-content{% else %}auth-main{% endif %}">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-container">
+            {% for category, message in messages %}
+            <div class="flash-message {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+</body>
+
+</html>

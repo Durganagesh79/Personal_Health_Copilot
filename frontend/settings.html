@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Settings | Health Copilot{% endblock %}
+
+{% block content %}
+<header class="topbar">
+    <div>
+        <span class="eyebrow">PREFERENCES</span>
+        <h1>Settings</h1>
+        <p class="page-subtitle">Customize the language and appearance of your workspace.</p>
+    </div>
+</header>
+
+<section class="panel settings-panel">
+    <form method="POST" action="{{ url_for('settings') }}" class="form-stack">
+        <div class="setting-intro">
+            <h2>Display preferences</h2>
+            <p class="muted-text">Choose how the application appears to you.</p>
+        </div>
+
+        <label for="language">AI explanation language</label>
+        <select id="language" name="language">
+            <option value="English" {% if settings.language=='English' %}selected{% endif %}>English</option>
+            <option value="Telugu" {% if settings.language=='Telugu' %}selected{% endif %}>Telugu</option>
+            <option value="Hindi" {% if settings.language=='Hindi' %}selected{% endif %}>Hindi</option>
+        </select>
+
+        <label for="theme">Appearance</label>
+        <select id="theme" name="theme">
+            <option value="light" {% if settings.theme=='light' %}selected{% endif %}>Light</option>
+            <option value="dark" {% if settings.theme=='dark' %}selected{% endif %}>Dark</option>
+        </select>
+
+        <button type="submit" class="primary-button">Save settings</button>
+    </form>
+
+    <div class="settings-notice">
+        <strong>About your medical information</strong>
+        <p>Your uploaded original files are removed after processing. Extracted text and generated analysis are retained
+            in the application's database so you can access past reports. Do not use this demo with real patient data
+            unless you have implemented appropriate privacy and security protections.</p>
+    </div>
+</section>
+{% endblock %}

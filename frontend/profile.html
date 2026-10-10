@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}My Profile | Health Copilot{% endblock %}
+
+{% block content %}
+<header class="topbar">
+    <div>
+        <span class="eyebrow">ACCOUNT</span>
+        <h1>My profile</h1>
+        <p class="page-subtitle">Manage the name and email associated with your account.</p>
+    </div>
+</header>
+
+<section class="panel settings-panel">
+    <div class="profile-heading">
+        <div class="profile-avatar">{{ (user.display_name or user.username)[0]|upper }}</div>
+        <div>
+            <h2>{{ user.display_name }}</h2>
+            <p class="muted-text">@{{ user.username }}</p>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('profile') }}" class="form-stack">
+        <label for="display_name">Display name</label>
+        <input id="display_name" name="display_name" required value="{{ user.display_name }}">
+
+        <label for="username_readonly">Username</label>
+        <input id="username_readonly" value="{{ user.username }}" readonly>
+
+        <label for="email">Email address</label>
+        <input id="email" name="email" type="email" value="{{ user.email or '' }}" placeholder="you@example.com">
+
+        <button type="submit" class="primary-button">Save profile</button>
+    </form>
+</section>
+{% endblock %}
