@@ -1,7 +1,8 @@
-Flask
-python-dotenv
-groq
-Pillow
-pytesseract
-PyMuPDF
-gunicorn
+
+Flask>=3.0,<4.0
+python-dotenv>=1.0,<2.0
+groq>=0.11,<2.0
+Pillow>=10.0,<13.0
+pytesseract>=0.3.13,<0.4
+PyMuPDF>=1.24,<2.0
+gunicorn>=22.0,<24.0
